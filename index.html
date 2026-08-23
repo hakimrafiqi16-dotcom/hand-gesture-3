@@ -58,7 +58,6 @@
         
         let activeShapeIndex = 0;
 
-        
         function getCloudPositions() {
             const pos = new Float32Array(PARTICLE_COUNT * 3);
             for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -69,19 +68,52 @@
             return pos;
         }
 
-        getHeartPositions() {
-            const pos = new Float32Array(PARTICLE_COUNT * 3);
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                const t = Math.random() * Math.PI * 2;
-                const u = Math.random() * Math.PI - Math.PI / 2;
-                let x = 16 * Math.pow(Math.sin(t), 3);
-                let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-                let z = u * 2;
-                pos[i * 3] = x * 0.3;
-                pos[i * 3 + 1] = y * 0.3;
-                pos[i * 3 + 2] = z * 0.3;
-            }
-            return pos;
+        function getHeartPositions() {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = "logo.png"; // Membaca gambar logo.png
+                
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 150;
+                    canvas.height = 150;
+
+                    ctx.drawImage(img, 0, 0, 150, 150);
+                    const imgData = ctx.getImageData(0, 0, 150, 150);
+                    const validPixels = [];
+
+                    for (let y = 0; y < canvas.height; y += 2) {
+                        for (let x = 0; x < canvas.width; x += 2) {
+                            const index = (y * canvas.width + x) * 4;
+                            const alpha = imgData.data[index + 3];
+                            if (alpha > 128) {
+                                validPixels.push({
+                                    x: (x - canvas.width / 2) * 0.08,
+                                    y: -(y - canvas.height / 2) * 0.08
+                                });
+                            }
+                        }
+                    }
+
+                    const pos = new Float32Array(PARTICLE_COUNT * 3);
+                    for (let i = 0; i < PARTICLE_COUNT; i++) {
+                        if (validPixels.length > 0) {
+                            const pt = validPixels[i % validPixels.length];
+                            pos[i * 3] = pt.x + (Math.random() - 0.5) * 0.05;
+                            pos[i * 3 + 1] = pt.y + (Math.random() - 0.5) * 0.05;
+                            pos[i * 3 + 2] = (Math.random() - 0.5) * 0.2;
+                        }
+                    }
+                    resolve(pos);
+                };
+
+                // Backup jika gambar gagal dipanggil
+                img.onerror = () => {
+                    resolve(getCloudPositions());
+                };
+            });
         }
 
         function getUranusPositions() {
@@ -116,7 +148,7 @@
             ctx.fillStyle = 'white';
             ctx.font = 'bold 50px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Hi Aweks', 300, 75);
+            ctx.fillText('GEPUK IBUK BAPAK', 300, 75);
 
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const validPixels = [];
@@ -143,7 +175,6 @@
             return pos;
         }
 
-    
         function getCloudColors() {
             const col = new Float32Array(PARTICLE_COUNT * 3);
             for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -192,10 +223,15 @@
 
         const shapes = [
             getCloudPositions(),
-            getHeartPositions(),
+            getCloudPositions(), // Sementara tunggu gambar dimuat naik
             getUranusPositions(),
             getTextPositions()
         ];
+
+        // Muat naik gambar logo.png secara latar belakang
+        getHeartPositions().then(imgPos => {
+            shapes[1] = imgPos;
+        });
 
         const shapeColors = [
             getCloudColors(),
@@ -275,7 +311,8 @@
             } else if (activeShapeIndex === 1) {
                 particles.rotation.y += 0.01;
                 particles.rotation.x = THREE.MathUtils.lerp(particles.rotation.x, 0, 0.1);
-                particles.rotation.z = THREE.MathUtils.lerp(particles.rotation.z, 0, 0.1);
+                particles.rotation.z = THREE.MathUtils.
+                    lerp(particles.rotation.z, 0, 0.1);
             } else if (activeShapeIndex === 2) {
                 particles.rotation.y += 0.012;
                 particles.rotation.x += 0.008;
@@ -328,7 +365,7 @@
         initThreeJS();
 
         const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            locateFile: (file) => https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}
         });
 
         hands.setOptions({
